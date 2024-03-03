@@ -1,0 +1,260 @@
+---
+title: "shirish_RTSM_P2"
+author: "Shirish Sehgal"
+date: "2024-03-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# # Required Packages
+packages = c('quantmod','car','forecast','tseries','FinTS', 'rugarch','utf8','ggplot2','xts')
+
+# # Install all Packages with Dependencies
+ install.packages(packages, dependencies = TRUE)
+# 
+# # Load all Packages
+lapply(packages, require, character.only = TRUE)
+
+
+
+getSymbols(Symbols = 'ACN', 
+           src = 'yahoo', 
+           from = as.Date('2018-01-01'), 
+           to = as.Date('2023-12-31'),
+           periodicity = 'daily')
+
+
+ACN_price = na.omit(ACN$ACN.Adjusted) # Adjusted Closing Price
+class(ACN_price) # xts (Time-Series) Object
+ACN_return = na.omit(diff(log(ACN_price))); plot(ACN_return)
+
+```
+Analysis:
+Objective: To analyze the daily returns of Accenture stock from 2018-01-01 to 2023-12-31.
+Analysis: Extracted the adjusted closing prices of ACN stock, calculated daily returns, and visualized them.
+Result:
+The 'ACN_return' plot displays the daily returns of ITC stock over the specified period.
+Implication: 
+The plot indicates the volatility and direction of daily returns for ITC stock during the given timeframe.
+Observations from the plot can help investors understand the historical performance and risk associated with ITC stock.
+```{r}
+
+#ADF test for Stationery
+
+adf_test_jj = adf.test(ACN_return); adf_test_jj
+
+```
+Objective: To conduct an Augmented Dickey-Fuller (ADF) test for stationarity on the daily returns of ITC stock.
+Analysis: Performed the ADF test using the 'adf.test' function and obtained results.
+Result:
+The Augmented Dickey-Fuller test for stationarity on ITC daily returns yields the following results:
+  - Dickey-Fuller statistic: -10.578
+  - Lag order: 11
+  - p-value: 0.01
+  - Alternative hypothesis: Stationary
+
+Implication: 
+The ADF test suggests that the daily returns of Accenture stock are likely stationary. The small p-value (0.01) indicates evidence against the null hypothesis of non-stationarity. Therefore, we have reason to believe that the Accenture stock returns exhibit stationarity, which is important for certain time series analyses.
+```{r}
+#Autocorrelation test
+# Ljung-Box Test for Autocorrelation
+lb_test_ds = Box.test(ACN_return); lb_test_ds
+#If autocorrelation exists then autoARIMA
+
+```
+Objective: To perform a Ljung-Box test for autocorrelation on the daily returns of Accenture stock.
+Analysis: Conducted the Ljung-Box test using the 'Box.test' function and obtained results.
+Result:
+The Ljung-Box test for autocorrelation on Accenture daily returns yields the following results:
+X-squared = 22.606
+df = 1
+p-value = 1.989e-06
+Implication:
+The Ljung-Box test indicates significant autocorrelation in the Accenture stock daily returns. The small p-value (< 1.989e-06) suggests evidence against the null hypothesis of no autocorrelation.
+
+Action:
+Given the presence of autocorrelation, it may be advisable to consider an autoARIMA model for time series forecasting. AutoARIMA can help in automatically selecting an appropriate ARIMA model with differencing to account for the observed autocorrelation.
+```{r}
+#ACF and PCF
+
+acf(ACN_price) # ACF of JJ Series
+pacf(ACN_price) # PACF of JJ Series
+
+acf(ACN_return) # ACF of JJ Difference (Stationary) Series
+pacf(ACN_return) # PACF of JJ Difference (Stationary) Series
+
+
+```
+```{r}
+#AutoArima
+arma_pq_ds = auto.arima(ACN_return); arma_pq_ds
+arma_pq = auto.arima(ACN_price); arma_pq
+
+```
+Analysis:
+
+Objective: To perform autoARIMA modeling on the daily returns ('ACN_return') and adjusted closing prices ('ACN_price') of accenture stock.
+Analysis: Used the 'auto.arima' function to automatically select the ARIMA model for both returns and prices.
+Results:
+Series: ACN_return 
+ARIMA(1,0,0) with non-zero mean 
+
+Coefficients:
+          ar1   mean
+      -0.1224  6e-04
+s.e.   0.0256  4e-04
+
+sigma^2 = 0.000295:  log likelihood = 3990.04
+AIC=-7974.07   AICc=-7974.06   BIC=-7958.12
+Series: ACN_price 
+ARIMA(0,1,1) 
+
+Coefficients:
+          ma1
+      -0.0414
+s.e.   0.0255
+
+sigma^2 = 16.14:  log likelihood = -4236.27
+AIC=8476.54   AICc=8476.55   BIC=8487.18
+Implication:
+The autoARIMA models provide a statistical framework to capture the underlying patterns in both daily returns and adjusted closing prices of Accenture stock. These models can be used for forecasting future values, and the AIC, AICc, and BIC values help in model comparison.
+
+Note: Interpretation of the coefficients and model selection details may require further analysis based on the specific context of the financial data.
+```{r}
+#Arima manuplation
+arma13 = arima(ACN_return, order = c(1, 0, 0)); arma13
+ds_fpq = forecast(arma13, h = 600)
+plot(ds_fpq)
+```
+Analysis:
+
+Objective: To fit an ARIMA(1, 0, 0) model to the daily returns ('ACN_return') of ITC stock and generate forecasts.
+Analysis: Used the 'arima' function to fit the ARIMA model and the 'forecast' function to generate forecasts.
+Results:
+
+ARIMA Model (1, 0, 0):
+coefficients:
+          ar1  intercept
+      -0.1224      6e-04
+s.e.   0.0256      4e-04
+
+sigma^2 estimated as 0.0002947:  log likelihood = 3990.04,  aic = -7974.07
+Forecasting:
+Generated forecasts for the next 600 time points using the fitted ARIMA model.
+
+Plot:
+The plot displays the original time series of daily returns along with the forecasted values.
+
+Implication:
+The ARIMA(1, 0, 0) model is fitted to the historical daily returns of Accenture stock, providing insights into the underlying patterns. The generated forecast can be used for future predictions, and the plot visually represents the model's performance.
+
+Note: Interpretation of coefficients and model evaluation details may require further analysis based on the specific context of the financial data.
+```{r}
+
+#Autocorrelation test
+# Ljung-Box Test for Autocorrelation
+lb_test_ds_A = Box.test(arma13$residuals); lb_test_ds_A
+
+
+```
+Analysis:
+
+Objective: To perform a Ljung-Box test for autocorrelation on the residuals of the ARIMA(1, 0, 0) model.
+Analysis: Conducted the Ljung-Box test using the 'Box.test' function on the residuals of the ARIMA model and obtained results.
+Results:
+
+Ljung-Box Test for Autocorrelation on Residuals:
+  Box-Pierce test
+X-squared = 0.02497, df = 1, p-value = 0.8744
+Implication:
+The Ljung-Box test indicates no significant autocorrelation in the residuals of the ARIMA(1, 0, 0) model. The high p-value (0.8744) suggests that there is no evidence against the null hypothesis of no autocorrelation.
+Action:
+The absence of autocorrelation in residuals is a positive outcome, indicating that the ARIMA model adequately captures the temporal patterns in the time series.
+
+Note: Interpretation may vary based on the specific context of the financial data and the assumptions underlying the time series analysis.
+```{r}
+# Test for Volatility Clustering or Heteroskedasticity: Box Test 
+stk_ret_sq = arma13$residuals^2 # Return Variance (Since Mean Returns is approx. 0)
+plot(stk_ret_sq)
+stk_ret_sq_box_test = Box.test(stk_ret_sq, lag = 10) # H0: Return Variance Series is Not Serially Correlated
+stk_ret_sq_box_test # Inference : Return Variance Series is Heteroskedastic (Has Volatility Clustering)
+
+# Test for Volatility Clustering or Heteroskedasticity: ARCH Test
+stk_ret_arch_test = ArchTest(arma13$residuals, lags = 10) # H0: No ARCH Effects
+stk_ret_arch_test # Inference : Return Series is Heteroskedastic (Has Volatility Clustering)
+
+```
+Analysis:
+Objective: To test for volatility clustering or heteroskedasticity in the residuals of the ARIMA(1, 0, 0) model.
+Analysis: Conducted Box test and ARCH test on the squared residuals to assess the presence of volatility clustering.
+Results:
+
+data:  stk_ret_sq
+X-squared = 1013.9, df = 10, p-value < 2.2e-16
+
+
+	ARCH LM-test; Null hypothesis: no ARCH effects
+
+data:  arma13$residuals
+Chi-squared = 324.67, df = 10, p-value < 2.2e-16
+Inference: The Box test indicates significant evidence against the null hypothesis, suggesting that the return variance series exhibits volatility clustering or heteroskedasticity.The ARCH test also provides strong evidence against the null hypothesis, supporting the presence of ARCH effects in the return series. This implies that the returns have volatility clustering.
+```{r}
+#Garch model
+garch_model1 = ugarchspec(variance.model = list(model = 'sGARCH', garchOrder = c(1,1)), mean.model = list(armaOrder = c(0,0), include.mean = TRUE))
+nse_ret_garch1 = ugarchfit(garch_model1, data = arma13$residuals); nse_ret_garch1
+
+garch_model2 = ugarchspec(
+variance.model = list(model = 'sGARCH', garchOrder = c(1,1)), mean.model = list(armaOrder = c(4,5), include.mean = FALSE))
+nse_ret_garch2 = ugarchfit(garch_model2, data = arma13$residuals); nse_ret_garch2
+
+# Test for Volatility Clustering or Heteroskedasticity: ARCH Test
+gar_resd = residuals(nse_ret_garch2)^2
+stk_ret_arch_test1 = ArchTest(gar_resd, lags = 1) # H0: No ARCH Effects
+stk_ret_arch_test1 # Inference : Return Series is Heteroskedastic (Has Volatility Clustering)
+```
+
+```{r}
+
+garch_modelf = ugarchspec(variance.model = list(model = 'sGARCH', garchOrder = c(1,1)), mean.model = list(armaOrder = c(4,5), include.mean = FALSE))
+stk_ret_garch = ugarchfit(garch_modelf, data = ACN_return); stk_ret_garch
+```
+
+```{r}
+# GARCH Forecast
+stk_ret_garch_forecast1 = ugarchforecast(stk_ret_garch, n.ahead = 50); stk_ret_garch_forecast1
+```
+
+```{r}
+plot(stk_ret_garch_forecast1)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
